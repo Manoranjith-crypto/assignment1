@@ -103,14 +103,34 @@ library SafeMath {
 }
 
 contract ErcBuy {
-
+    using SafeMath for uint256;
     event Bought(uint256 amount);
-
-
+    uint256 public raisedAmount = 0;
+    uint256 public PreSale = 30000000;
+    uint256 public SeedSale = 50000000;
+    uint256 public price= 3303000000000 wei;
+    /* 
+     * $ 0.1 = 33030 gwei
+     * $ 0.1 = 3303000000000 wei
+     */
     ERC20 public token;
 
     constructor() public {
         token = new ERC20Basic();
+    }
+    function CrowdStage() public{
+        // initial stage $0.01
+        if(raisedAmount < PreSale){
+            price = 3303000000000 wei;
+        }
+        // for second stage $0.02
+        else if (raisedAmount > PreSale && raisedAmount <SeedSale){
+            price = 6606000000000 wei;
+        }
+        // for final stage $0.03
+        else if (raisedAmount > SeedSale){
+            price = 9909000000000 wei;
+        }
     }
 
     function buy() payable public {
@@ -119,6 +139,7 @@ contract ErcBuy {
         require(amountTobuy > 0, "You need to send some ether");
         require(amountTobuy <= _Balance, "Not enough tokens in the reserve");
         token.transfer(msg.sender, amountTobuy);
+        raisedAmount = raisedAmount.add(msg.value);
         emit Bought(amountTobuy);
     }
 
