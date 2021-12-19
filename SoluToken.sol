@@ -1,59 +1,126 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.6.0;
 
-import "./ERC20.sol";
+interface ERC20 {
 
-contract SoluToken is ERC20 {
-    string public constant symbol = "ST";
-    string public constant name = "Solulab Token";
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+
+contract ERC20Basic is ERC20 {
+
+    string public constant name = "Solidity Token";
+    string public constant symbol = "SL";
     uint8 public constant decimals = 18;
-    
-    uint private constant __totalSupply = 100000000; //100 million token as a total supply
-    mapping (address => uint) private __balanceOf;
-    mapping (address => mapping (address => uint)) private __allowances;
-    
-    constructor() public {
-            __balanceOf[msg.sender] = __totalSupply; //asigning totalsupply to balanceof
-    }
-    
-    function totalSupply() public constant returns (uint _totalSupply) {
-        _totalSupply = __totalSupply;
-    }
-    
-    function balanceOf(address _addr) public constant returns (uint balance) {
-        return __balanceOf[_addr]; //shows the current balance
-    }
-    
-    function transfer(address _to, uint _value) public returns (bool success) {
-        if (_value > 0 && _value <= balanceOf(msg.sender)) {
-            __balanceOf[msg.sender] -= _value;
-            __balanceOf[_to] += _value;
-            return true; // checking the transfer was success or not
-        }
-        return false;
 
-        
-    }
+
+    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    event Transfer(address indexed from, address indexed to, uint tokens);
+
+
+    mapping(address => uint256) balances;
+
+    mapping(address => mapping (address => uint256)) allowed;
     
-    function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
-        if (__allowances[_from][msg.sender] > 0 &&
-            _value > 0 &&
-            __allowances[_from][msg.sender] >= _value && 
-            __balanceOf[_from] >= _value) {
-            __balanceOf[_from] -= _value;
-            __balanceOf[_to] += _value;
-            
-            __allowances[_from][msg.sender] -= _value;
-            return true;
-        }
-        return false;
+    //100 million token
+    uint256 totalSupply_ = 100000000;
+
+    using SafeMath for uint256;
+
+   constructor() public {
+    balances[msg.sender] = totalSupply_;
     }
-    
-    function approve(address _spender, uint _value) public returns (bool success) {
-        __allowances[msg.sender][_spender] = _value;
+
+    function totalSupply() public override view returns (uint256) {
+    return totalSupply_;
+    }
+
+    function balanceOf(address tokenOwner) public override view returns (uint256) {
+        return balances[tokenOwner];
+    }
+
+    function transfer(address receiver, uint256 numTokens) public override returns (bool) {
+        require(numTokens <= balances[msg.sender]);
+        balances[msg.sender] = balances[msg.sender].sub(numTokens);
+        balances[receiver] = balances[receiver].add(numTokens);
+        emit Transfer(msg.sender, receiver, numTokens);
         return true;
     }
-    
-    function allowance(address _owner, address _spender) public constant returns (uint remaining) {
-        return __allowances[_owner][_spender];
+
+    function approve(address delegate, uint256 numTokens) public override returns (bool) {
+        allowed[msg.sender][delegate] = numTokens;
+        emit Approval(msg.sender, delegate, numTokens);
+        return true;
+    }
+
+    function allowance(address owner, address delegate) public override view returns (uint) {
+        return allowed[owner][delegate];
+    }
+
+    function transferFrom(address owner, address buyer, uint256 numTokens) public override returns (bool) {
+        require(numTokens <= balances[owner]);
+        require(numTokens <= allowed[owner][msg.sender]);
+
+        balances[owner] = balances[owner].sub(numTokens);
+        allowed[owner][msg.sender] = allowed[owner][msg.sender].sub(numTokens);
+        balances[buyer] = balances[buyer].add(numTokens);
+        emit Transfer(owner, buyer, numTokens);
+        return true;
     }
 }
+
+library SafeMath {
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+      assert(b <= a);
+      return a - b;
+    }
+
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+      uint256 c = a + b;
+      assert(c >= a);
+      return c;
+    }
+
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+      uint256 c = a * b;
+      assert(a == 0 || c / a == b);
+      return c;
+    }
+  
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+      uint256 c = a / b;
+      return c;
+    }
+}
+
+contract ErcBuy {
+
+    event Bought(uint256 amount);
+
+
+    ERC20 public token;
+
+    constructor() public {
+        token = new ERC20Basic();
+    }
+
+    function buy() payable public {
+        uint256 amountTobuy = msg.value;
+        uint256 _Balance = token.balanceOf(address(this));
+        require(amountTobuy > 0, "You need to send some ether");
+        require(amountTobuy <= _Balance, "Not enough tokens in the reserve");
+        token.transfer(msg.sender, amountTobuy);
+        emit Bought(amountTobuy);
+    }
+
+}
+
