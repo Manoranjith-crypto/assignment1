@@ -11,7 +11,7 @@ error InvalidAmount(uint sentAmount, uint requiredAmount);
 error AtleastOneWei();
 error NullAddress();
 
-contract NFT is ERC721, ERC721URIStorage {
+contract NFT is ERC721, ERC721URIStorage, ERC721Burnable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
